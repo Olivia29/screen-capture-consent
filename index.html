@@ -3,602 +3,169 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MIIA-AI · 屏幕抓取开关与授权提示（原型 V1.0）</title>
+<title>屏幕抓取开关（简化版 V2.0）</title>
 <style>
   :root{
-    --bg:#F5FBFB; --card:#FFFFFF; --line:#E0EAF6; --line2:#EEF3F8;
+    --bg:#F5FBFB; --card:#fff; --line:#E0EAF6; --line2:#EEF3F8;
     --ink:#1F2A37; --gray:#5A6B7B; --muted:#8FA0B0;
     --brand:#00A398; --brand-d:#00847B; --brand-l:#E6F7F5;
-    --blue:#0070C0; --blue-l:#EAF3FB; --lblue:#00B0F0;
-    --warn:#C2410C; --warn-l:#FFF4ED; --danger:#B42318; --danger-l:#FEF3F2;
-    --ok:#0E7C66; --radius:12px;
+    --blue:#0070C0; --warn:#C2410C; --warn-l:#FFF4ED; --danger:#B42318;
   }
   *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
-  body{
-    background:var(--bg); color:var(--ink);
-    font:14px/1.65 "Microsoft YaHei","PingFang SC",system-ui,-apple-system,sans-serif;
-    -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:1240px;margin:0 auto;padding:0 24px 64px}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.65 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+  .top{background:#fff;border-bottom:1px solid var(--line)}
+  .top .in{max-width:860px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;gap:12px}
+  .logo{width:28px;height:28px;border-radius:8px;background:var(--brand);color:#fff;
+        display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  .bn{font-weight:700;font-size:14.5px}
+  .crumb{color:var(--muted);font-size:12.5px}
+  .wrap{max-width:860px;margin:0 auto;padding:26px 24px 60px}
+  h1{font-size:20px;margin:0 0 6px}
+  .lead{color:var(--gray);font-size:13px;margin:0 0 20px}
 
-  /* ---------- 顶栏 ---------- */
-  .topbar{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
-  .topbar .inner{max-width:1240px;margin:0 auto;padding:0 24px;height:58px;display:flex;align-items:center;gap:14px}
-  .logo{width:30px;height:30px;border-radius:8px;background:var(--brand);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px}
-  .brandname{font-weight:700;font-size:15px;letter-spacing:.2px}
-  .crumb{color:var(--muted);font-size:12.5px;margin-left:2px}
-  .crumb b{color:var(--gray);font-weight:600}
-  .spacer{flex:1}
-  .env{font-size:11.5px;color:var(--ok);background:var(--brand-l);border:1px solid #C9EBE6;padding:3px 9px;border-radius:20px;font-weight:600}
-  .who{font-size:12.5px;color:var(--gray)}
-  .who b{color:var(--ink)}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .card .hd{padding:16px 20px;border-bottom:1px solid var(--line2);font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.4px}
+  .card .bd{padding:6px 20px 20px}
 
-  /* ---------- 页头 ---------- */
-  .pagehead{display:flex;align-items:flex-end;gap:16px;padding:28px 0 18px;border-bottom:1px solid var(--line);margin-bottom:20px}
-  .pagehead h1{font-size:22px;margin:0;letter-spacing:.2px}
-  .pagehead p{margin:6px 0 0;color:var(--gray);font-size:13px}
-  .pagehead .spacer{flex:1}
-
-  /* ---------- 按钮 ---------- */
-  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;
-       font:inherit;font-size:13px;cursor:pointer;transition:.15s;white-space:nowrap}
-  .btn:hover{border-color:#C9D8EA;background:#FBFDFE}
-  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
-  .btn.primary:hover{background:var(--brand-d);border-color:var(--brand-d)}
-  .btn.blue{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:600}
-  .btn.blue:hover{filter:brightness(.94)}
-  .btn.danger{color:var(--danger);border-color:#F3C6C2;background:#fff}
-  .btn.ghost{background:transparent;border-color:transparent;color:var(--blue);padding:6px 8px}
-  .btn.sm{padding:5px 10px;font-size:12px;border-radius:7px}
-  .btn[disabled]{opacity:.5;cursor:not-allowed}
-
-  /* ---------- 标签页 ---------- */
-  .tabs{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:22px}
-  .tab{appearance:none;border:0;background:transparent;font:inherit;font-size:13.5px;color:var(--gray);
-       padding:11px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;font-weight:600}
-  .tab:hover{color:var(--ink)}
-  .tab[aria-selected="true"]{color:var(--brand);border-bottom-color:var(--brand)}
-
-  /* ---------- 卡片 ---------- */
-  .grid{display:grid;grid-template-columns:1fr 328px;gap:20px;align-items:start}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
-  .card-h{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line2)}
-  .card-h h2{font-size:14.5px;margin:0;font-weight:700}
-  .card-h .hint{font-size:11.5px;color:var(--muted);font-weight:400}
-  .card-b{padding:6px 18px 18px}
-  .section{border-top:1px solid var(--line2);padding:16px 0 4px}
-  .section:first-child{border-top:0}
-  .section h3{font-size:12.5px;color:var(--muted);font-weight:700;letter-spacing:.4px;margin:0 0 10px;text-transform:uppercase}
-  .row{display:flex;gap:14px;padding:12px 0;border-bottom:1px dashed var(--line2)}
+  .row{display:flex;align-items:center;gap:16px;padding:18px 0;border-bottom:1px dashed var(--line2)}
   .row:last-child{border-bottom:0}
-  .row .lbl{width:132px;flex:none;font-size:13px;color:var(--ink);font-weight:600;padding-top:2px}
-  .row .val{flex:1;min-width:0}
-  .row .desc{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6}
+  .row .txt{flex:1;min-width:0}
+  .row .t{font-size:15px;font-weight:700}
+  .row .s{font-size:12.5px;color:var(--gray);margin-top:3px}
 
-  /* ---------- 开关 ---------- */
-  .master{display:flex;align-items:center;gap:16px;padding:16px 0 18px}
-  .switch{position:relative;width:52px;height:28px;flex:none;border-radius:20px;background:#D6DEE8;border:0;cursor:pointer;transition:.2s;padding:0}
-  .switch::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;
-                 box-shadow:0 1px 3px rgba(16,32,56,.25);transition:.2s}
-  .switch[aria-checked="true"]{background:var(--brand)}
-  .switch[aria-checked="true"]::after{transform:translateX(24px)}
-  .switch:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-  .master .txt .t{font-size:15px;font-weight:700}
-  .master .txt .s{font-size:12.5px;color:var(--gray);margin-top:3px}
-  .state{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid}
-  .state.off{color:var(--gray);border-color:var(--line);background:#F7FAFC}
-  .state.on{color:var(--ok);border-color:#BFE7DF;background:var(--brand-l)}
+  /* 开关 */
+  .sw{position:relative;width:54px;height:30px;flex:none;border:0;border-radius:20px;background:#D6DEE8;
+      cursor:pointer;transition:.2s;padding:0}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+             background:#fff;box-shadow:0 1px 3px rgba(16,32,56,.25);transition:.2s}
+  .sw[aria-checked="true"]{background:var(--brand)}
+  .sw[aria-checked="true"]::after{transform:translateX(24px)}
+  .sw:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .state{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid var(--line);
+         color:var(--gray);background:#F7FAFC;white-space:nowrap}
+  .state.on{color:#0E7C66;border-color:#BFE7DF;background:var(--brand-l)}
 
-  /* ---------- 选项 ---------- */
-  .opts{display:flex;flex-wrap:wrap;gap:8px}
-  .opt{border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:12.5px;cursor:pointer;
-       background:#fff;color:var(--gray);display:flex;align-items:center;gap:7px;transition:.15s;user-select:none}
-  .opt:hover{border-color:#C9D8EA}
-  .opt[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-l);color:var(--brand-d);font-weight:700}
-  .opt input{display:none}
-  .lock{font-size:11.5px;color:var(--muted);margin-top:7px;display:flex;gap:6px;align-items:flex-start}
-  .lock b{color:var(--ok)}
+  /* 秒数选择 */
+  #secBox{transition:.18s}
+  #secBox.hide{display:none}
+  .secs{display:flex;gap:9px;flex-wrap:wrap;margin-top:2px}
+  .sec{border:1px solid var(--line);background:#fff;color:var(--gray);border-radius:10px;
+       padding:9px 15px;font:inherit;font-size:13px;cursor:pointer;transition:.15s;min-width:74px}
+  .sec:hover{border-color:#C9D8EA}
+  .sec[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-l);color:var(--brand-d);font-weight:700}
+  .hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.6}
 
-  /* ---------- 右侧状态 ---------- */
-  .stat{padding:14px 18px;border-bottom:1px solid var(--line2);display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-  .stat:last-child{border-bottom:0}
-  .stat .k{font-size:12.5px;color:var(--gray)}
-  .stat .v{font-size:13px;font-weight:700}
-  .pill{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--blue-l);color:var(--blue);font-weight:700}
-  .note{background:var(--warn-l);border:1px solid #FBD9C4;color:#8A3B12;border-radius:10px;padding:11px 13px;font-size:12.3px;line-height:1.65}
-  .note b{color:#7A2E0B}
+  .summary{margin-top:20px;background:#fff;border:1px solid var(--line);border-radius:12px;
+           padding:14px 18px;font-size:13px;color:var(--gray);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .summary b{color:var(--ink)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#D6DEE8;flex:none}
+  .dot.live{background:var(--brand);animation:p 1.5s infinite}
+  @keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.35)}}
 
-  /* ---------- 表格 ---------- */
-  table{width:100%;border-collapse:collapse;font-size:12.5px}
-  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line2);vertical-align:top}
-  th{font-size:11.5px;color:var(--muted);font-weight:700;background:#FBFDFE;letter-spacing:.3px}
-  tbody tr:hover{background:#FBFDFE}
-  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:20px;font-weight:700}
-  .tag.ok{background:var(--brand-l);color:var(--ok)}
-  .tag.warn{background:var(--warn-l);color:var(--warn)}
-  .tag.no{background:var(--danger-l);color:var(--danger)}
-  .mono{font-family:ui-monospace,Consolas,monospace;font-size:11.5px;color:var(--gray)}
-
-  /* ---------- 提示场景（设备框） ---------- */
-  .scenes{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  .scene .cap{font-size:12.5px;color:var(--gray);margin:0 0 8px;display:flex;gap:8px;align-items:center}
-  .scene .cap b{color:var(--ink);font-size:13px}
-  .device{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .device-bar{height:34px;background:#F2F7FA;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:6px;padding:0 12px}
-  .dot{width:9px;height:9px;border-radius:50%;background:#D6DEE8}
-  .device-body{padding:18px;min-height:196px;background:#FBFDFE}
-  .tip{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px}
-  .tip .h{font-size:13.5px;font-weight:700;display:flex;gap:8px;align-items:center;margin-bottom:8px}
-  .tip .h .ic{width:20px;height:20px;border-radius:6px;background:var(--brand);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700}
-  .tip ul{margin:8px 0 0;padding-left:18px;color:var(--gray);font-size:12.3px}
-  .tip li{margin:4px 0}
-  .tip .acts{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
-  .banner{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #F3C6C2;border-left:4px solid var(--danger);
-          border-radius:10px;padding:11px 13px}
-  .banner .live{width:8px;height:8px;border-radius:50%;background:var(--danger);animation:pulse 1.4s infinite}
-  @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.35)}}
-  .banner .t{font-size:12.8px;font-weight:700;color:var(--danger)}
-  .banner .s{font-size:11.8px;color:var(--gray);margin-top:2px}
-  .corner{position:relative}
-  .corner .fl{position:absolute;right:12px;top:12px;background:#fff;border:1px solid #F3C6C2;border-radius:9px;
-              padding:7px 10px;font-size:11.5px;color:var(--danger);font-weight:700;display:flex;gap:7px;align-items:center}
-  .privacy-center .item{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line2);font-size:12.5px}
-  .privacy-center .item:last-child{border-bottom:0}
-  .copy{background:#F8FBFC;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-top:14px;
-        font-size:12.6px;line-height:1.85;color:#33424F}
-  .copy .k{color:var(--brand-d);font-weight:700}
-
-  /* ---------- 合规 ---------- */
-  .rules{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  .rule{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
-  .rule h4{margin:0 0 8px;font-size:13.5px;display:flex;gap:8px;align-items:center}
-  .rule h4 .n{width:22px;height:22px;border-radius:6px;background:var(--brand-l);color:var(--brand-d);
-              font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700}
-  .rule p{margin:0;font-size:12.4px;color:var(--gray);line-height:1.7}
-  .rule.red h4 .n{background:var(--danger-l);color:var(--danger)}
-  .rule.red{border-color:#F3C6C2}
-  .compare{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px}
-  .compare .box{border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .compare .box h5{margin:0;padding:10px 14px;font-size:12.5px;background:#FBFDFE;border-bottom:1px solid var(--line2)}
-  .compare .box.yes h5{color:var(--ok);background:var(--brand-l);border-bottom-color:#CBEDE7}
-  .compare .box.no h5{color:var(--danger);background:var(--danger-l);border-bottom-color:#F6D7D3}
-  .compare ul{margin:0;padding:12px 14px 14px 30px;color:var(--gray);font-size:12.4px;line-height:1.75}
-
-  /* ---------- 弹窗 ---------- */
+  /* 弹窗 */
   .mask{position:fixed;inset:0;background:rgba(16,32,56,.45);display:none;align-items:center;justify-content:center;
-        padding:24px;z-index:80;backdrop-filter:blur(2px)}
+        padding:22px;z-index:60;backdrop-filter:blur(2px)}
   .mask.show{display:flex}
-  .modal{background:#fff;border-radius:16px;max-width:560px;width:100%;max-height:88vh;overflow:auto;
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow:auto;
          box-shadow:0 24px 60px rgba(16,32,56,.22)}
-  .modal.wide{max-width:680px}
-  .modal-h{padding:20px 24px 0}
-  .modal-h h3{margin:0;font-size:17px}
-  .modal-h p{margin:6px 0 0;font-size:12.5px;color:var(--gray)}
-  .modal-b{padding:16px 24px}
-  .modal-f{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line2);margin-top:6px}
-  .checkline{display:flex;gap:10px;align-items:flex-start;background:#F8FBFC;border:1px solid var(--line);
-             border-radius:10px;padding:12px;font-size:12.5px;color:#33424F;margin-top:14px;cursor:pointer;line-height:1.7}
-  .checkline input{margin-top:3px;width:15px;height:15px;accent-color:var(--brand);flex:none}
-  .kv{display:grid;grid-template-columns:86px 1fr;gap:8px 12px;font-size:12.5px;margin-top:6px}
-  .kv .k{color:var(--muted)}
-  .kv .v{color:#33424F}
+  .mh{padding:22px 24px 0}
+  .mh h2{margin:0;font-size:17px;display:flex;gap:9px;align-items:center}
+  .mh .ic{width:22px;height:22px;border-radius:7px;background:var(--warn-l);color:var(--warn);
+          display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  .mh p{margin:7px 0 0;font-size:12.6px;color:var(--gray)}
+  .mb{padding:16px 24px 4px}
+  .risks{margin:0;padding:0;list-style:none}
+  .risks li{display:flex;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line2);font-size:12.8px;color:#33424F;line-height:1.7}
+  .risks li:last-child{border-bottom:0}
+  .risks .k{flex:none;width:66px;color:var(--muted)}
+  .risks b{color:var(--ink)}
+  .mf{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line2);margin-top:10px}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 16px;border-radius:9px;
+       font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+  .btn:hover{background:#FBFDFE}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+  .btn.primary:hover{background:var(--brand-d)}
+  .note{font-size:11.6px;color:var(--muted);margin-top:10px;line-height:1.6}
 
-  /* ---------- Toast ---------- */
-  #toast{position:fixed;left:50%;bottom:34px;transform:translate(-50%,20px);opacity:0;transition:.25s;
-         background:#15303F;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;z-index:99;pointer-events:none}
+  #toast{position:fixed;left:50%;bottom:32px;transform:translate(-50%,16px);opacity:0;transition:.25s;
+         background:#15303F;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;z-index:90;pointer-events:none}
   #toast.show{opacity:1;transform:translate(-50%,0)}
-
-  @media (max-width:1080px){
-    .grid{grid-template-columns:1fr}
-    .scenes,.rules,.compare{grid-template-columns:1fr}
-  }
-  @media print{
-    .topbar,.tabs,.btn{display:none}
-    body{background:#fff}
-    .card,.device,.rule{break-inside:avoid}
-  }
+  @media print{.top,.secs,.btn{display:none}body{background:#fff}}
 </style>
 </head>
 <body>
 
-<div class="topbar">
-  <div class="inner">
+<div class="top">
+  <div class="in">
     <div class="logo">影</div>
-    <div class="brandname">MIIA-AI 管理后台</div>
-    <div class="crumb">隐私与合规 / <b>屏幕抓取</b></div>
-    <div class="spacer"></div>
-    <span class="env">生产环境</span>
-    <span class="who">运维管理员 · <b>VV</b></span>
+    <div class="bn">MIIA-AI 管理后台</div>
+    <div class="crumb">设置 / 屏幕抓取</div>
   </div>
 </div>
 
 <div class="wrap">
-  <div class="pagehead">
-    <div>
-      <h1>屏幕抓取（Screen Capture）</h1>
-      <p>用于技术支持与问题排查的屏幕画面获取能力。开启需二次确认；抓取过程对用户始终可见、可随时终止、可撤回授权。</p>
+  <h1>屏幕抓取</h1>
+  <p class="lead">开启后可设定抓取间隔。开启前需用户确认隐私提示；关闭后立即停止抓取。</p>
+
+  <div class="card">
+    <div class="hd">抓取设置</div>
+    <div class="bd">
+
+      <!-- 1. 开关 -->
+      <div class="row">
+        <div class="txt">
+          <div class="t">抓取屏幕</div>
+          <div class="s">开启后按设定间隔自动抓取屏幕画面，用于技术支持与问题排查。</div>
+        </div>
+        <button class="sw" id="sw" role="switch" aria-checked="false" aria-label="抓取屏幕开关"></button>
+        <span class="state" id="st">已关闭</span>
+      </div>
+
+      <!-- 2. 抓取间隔（开启后出现） -->
+      <div class="row" id="secBox" hidden>
+        <div class="txt" style="width:100%">
+          <div class="t">抓取间隔</div>
+          <div class="s">每隔多少秒抓取一次。</div>
+          <div class="secs" style="margin-top:12px">
+            <button class="sec" data-sec="5">5 秒</button>
+            <button class="sec" data-sec="10" aria-pressed="true">10 秒</button>
+            <button class="sec" data-sec="30">30 秒</button>
+            <button class="sec" data-sec="60">60 秒</button>
+          </div>
+          <div class="hint">间隔越短，画面中包含敏感信息的暴露面越大；建议不低于 10 秒。</div>
+        </div>
+      </div>
+
     </div>
-    <div class="spacer"></div>
-    <button class="btn" id="btnPreview">预览用户端提示</button>
-    <button class="btn primary" id="btnSave">保存设置</button>
   </div>
 
-  <div class="tabs" role="tablist">
-    <button class="tab" role="tab" data-tab="admin" aria-selected="true">① 后台设置</button>
-    <button class="tab" role="tab" data-tab="user" aria-selected="false">② 用户端提示文案</button>
-    <button class="tab" role="tab" data-tab="compliance" aria-selected="false">③ 合规要求与边界</button>
+  <div class="summary">
+    <span class="dot" id="sdot"></span>
+    <span id="stext">当前已关闭，未进行任何抓取。</span>
   </div>
-
-  <!-- ================= ① 后台设置 ================= -->
-  <section data-panel="admin">
-    <div class="grid">
-      <div>
-        <div class="card">
-          <div class="card-h">
-            <h2>抓取能力配置</h2>
-            <span class="hint">变更将记入审计日志，需二次确认</span>
-          </div>
-          <div class="card-b">
-            <div class="master">
-              <button class="switch" id="swMaster" role="switch" aria-checked="false" aria-label="屏幕抓取总开关"></button>
-              <div class="txt">
-                <div class="t">允许发起屏幕抓取</div>
-                <div class="s">关闭时，任何角色与流程均无法发起抓取；已存在的抓取任务立即终止。</div>
-              </div>
-              <div class="spacer"></div>
-              <span class="state off" id="swState">已关闭</span>
-            </div>
-
-            <div class="section">
-              <h3>抓取范围</h3>
-              <div class="opts" data-group="scope">
-                <button class="opt" data-v="window" aria-pressed="true">仅 MIIA-AI 应用窗口<b style="color:var(--green)"></b></button>
-                <button class="opt" data-v="region" aria-pressed="false">用户框选区域</button>
-                <button class="opt" data-v="full" aria-pressed="false">整屏</button>
-              </div>
-              <div class="lock">🔒 <span><b>默认且推荐"仅应用窗口"</b>：整屏抓取会带入其他程序、聊天窗口与患者信息，须经安全评估并单独审批后方可启用。</span></div>
-            </div>
-
-            <div class="section">
-              <h3>发起方式</h3>
-              <div class="opts" data-group="trigger">
-                <button class="opt" data-v="user" aria-pressed="true">用户主动发起</button>
-                <button class="opt" data-v="confirm" aria-pressed="false">管理员发起，用户确认后进行</button>
-                <button class="opt" data-v="silent" aria-pressed="false" data-forbidden="1">后台静默抓取</button>
-              </div>
-              <div class="lock">⛔ <span><b>"后台静默抓取"不可启用</b>：抓取全过程须有用户可见提示，禁止隐蔽获取屏幕内容。</span></div>
-            </div>
-
-            <div class="section">
-              <h3>授权方式</h3>
-              <div class="opts" data-group="consent">
-                <button class="opt" data-v="each" aria-pressed="true">每次抓取前单独确认</button>
-                <button class="opt" data-v="period" aria-pressed="false">期间授权（最长 7 天，可随时撤回）</button>
-              </div>
-              <div class="desc" style="font-size:12px;color:var(--muted);margin-top:8px">
-                屏幕内容属敏感个人信息，须取得<b>单独同意</b>，不得与其他条款捆绑，不得默认勾选。
-              </div>
-            </div>
-
-            <div class="section">
-              <h3>留存与脱敏</h3>
-              <div class="opts" data-group="keep">
-                <button class="opt" data-v="7" aria-pressed="true">留存 7 天</button>
-                <button class="opt" data-v="30" aria-pressed="false">留存 30 天</button>
-                <button class="opt" data-v="90" aria-pressed="false">留存 90 天</button>
-              </div>
-              <div class="row" style="border-bottom:0;padding-bottom:0">
-                <div class="lbl" style="margin-top:12px">自动脱敏</div>
-                <div class="val" style="margin-top:12px">
-                  <div class="opts" data-group="mask">
-                    <button class="opt" data-v="on" aria-pressed="true" data-locked="1">强制开启</button>
-                  </div>
-                  <div class="lock">🔒 <span>密码框、身份证件、其他患者影像与报告区域<b>自动遮挡</b>，不可关闭。</span></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="section">
-              <h3>生效范围</h3>
-              <div class="row" style="border-bottom:0">
-                <div class="lbl">适用对象</div>
-                <div class="val">
-                  <div class="opts" data-group="scopeOrg">
-                    <button class="opt" data-v="one" aria-pressed="true">本机构</button>
-                    <button class="opt" data-v="tenant" aria-pressed="false">指定租户</button>
-                  </div>
-                  <div class="desc">跨租户抓取需租户管理员书面授权，并在审计日志中单独记录授权凭据。</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:20px">
-          <div class="card-h">
-            <h2>抓取审计日志</h2>
-            <span class="hint">开关变更、抓取发起、查看与下载均留痕（示例数据）</span>
-            <div style="flex:1"></div>
-            <button class="btn sm" id="btnExportLog">导出日志</button>
-          </div>
-          <div class="card-b" style="padding-top:0">
-            <table>
-              <thead><tr><th style="width:132px">时间</th><th style="width:104px">操作人</th><th style="width:96px">动作</th><th>对象 / 说明</th><th style="width:104px">结果</th><th style="width:120px">来源 IP</th></tr></thead>
-              <tbody id="logBody">
-                <tr><td class="mono">2026-10-12 09:41:08</td><td>VV（运维）</td><td>查看记录</td><td>查看抓取记录 SC-20261012-0007（工单 #T-2291）</td><td><span class="tag ok">成功</span></td><td class="mono">10.20.3.18</td></tr>
-                <tr><td class="mono">2026-10-12 09:12:44</td><td>何×（用户）</td><td>撤回授权</td><td>撤回"期间授权"，有效期提前终止</td><td><span class="tag ok">成功</span></td><td class="mono">10.20.7.62</td></tr>
-                <tr><td class="mono">2026-10-11 16:03:52</td><td>VV（运维）</td><td>关闭开关</td><td>关闭屏幕抓取总开关（原因：问题定位完成）</td><td><span class="tag ok">成功</span></td><td class="mono">10.20.3.18</td></tr>
-                <tr><td class="mono">2026-10-11 15:47:19</td><td>何×（用户）</td><td>拒绝授权</td><td>拒绝管理员发起的抓取（工单 #T-2291）</td><td><span class="tag warn">已拒绝</span></td><td class="mono">10.20.7.62</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <aside>
-        <div class="card">
-          <div class="card-h"><h2>当前状态</h2></div>
-          <div class="stat"><span class="k">总开关</span><span class="v" id="sMaster">已关闭</span></div>
-          <div class="stat"><span class="k">生效范围</span><span class="v" id="sScope">仅应用窗口 · 本机构</span></div>
-          <div class="stat"><span class="k">授权方式</span><span class="v" id="sConsent">每次单独确认</span></div>
-          <div class="stat"><span class="k">留存期限</span><span class="v" id="sKeep">7 天（到期自动删除）</span></div>
-          <div class="stat"><span class="k">进行中的抓取</span><span class="v" id="sLive">0 个</span></div>
-          <div class="stat"><span class="k">有效授权用户</span><span class="v">3 位</span></div>
-          <div class="stat"><span class="k">最近变更</span><span class="v" style="font-weight:400;font-size:12.3px">2026-10-11 16:03 · VV</span></div>
-        </div>
-
-        <div class="note" style="margin-top:20px">
-          <b>开启前请确认三件事</b><br>
-          ① 本次抓取有明确工单或排查事由；<br>
-          ② 已告知用户"抓什么、为什么、谁能看、留多久"；<br>
-          ③ 已选择最小范围（仅应用窗口），整屏需单独审批。
-        </div>
-
-        <div class="card" style="margin-top:20px">
-          <div class="card-h"><h2>快捷操作</h2></div>
-          <div class="card-b" style="padding:12px 18px 16px">
-            <button class="btn blue" id="btnSimLive" style="width:100%;margin-bottom:9px">模拟"抓取进行中"提示</button>
-            <button class="btn" id="btnSimAsk" style="width:100%;margin-bottom:9px">模拟"用户授权"弹窗</button>
-            <button class="btn" id="btnSimReject" style="width:100%">模拟"用户拒绝"结果</button>
-          </div>
-        </div>
-      </aside>
-    </div>
-  </section>
-
-  <!-- ================= ② 用户端提示 ================= -->
-  <section data-panel="user" hidden>
-    <div class="scenes">
-      <div class="scene">
-        <p class="cap"><b>场景一 · 首次授权</b><span>抓取前弹出，单独同意，不与其他条款捆绑</span></p>
-        <div class="device">
-          <div class="device-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <div class="device-body">
-            <div class="tip">
-              <div class="h"><span class="ic">!</span>屏幕抓取授权</div>
-              <div style="font-size:12.4px;color:var(--gray)">技术支持人员请求获取您的屏幕画面，用于排查您提交的问题（工单 #T-2291）。</div>
-              <ul>
-                <li><b>抓取内容：</b>仅 MIIA-AI 应用窗口，不含其他程序与桌面</li>
-                <li><b>可见可控：</b>抓取期间窗口顶部持续显示提示，您可随时点击"停止"</li>
-                <li><b>谁可以看：</b>仅本次工单指派的技术支持人员</li>
-                <li><b>留存期限：</b>7 天后自动删除</li>
-                <li><b>用途限制：</b>仅用于本次问题排查，不用于其他用途</li>
-              </ul>
-              <div class="acts">
-                <button class="btn" data-demo="reject">拒绝</button>
-                <button class="btn primary" data-demo="allow">仅本次允许</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="scene">
-        <p class="cap"><b>场景二 · 抓取进行中</b><span>全程可见，含剩余时间与"立即停止"</span></p>
-        <div class="device">
-          <div class="device-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <div class="device-body corner">
-            <div class="banner">
-              <span class="live"></span>
-              <div>
-                <div class="t">正在屏幕抓取 · 剩余 02:47</div>
-                <div class="s">仅抓取 MIIA-AI 窗口 · 技术人员：张工 · 工单 #T-2291</div>
-              </div>
-              <div style="flex:1"></div>
-              <button class="btn sm danger" data-demo="stop">立即停止</button>
-            </div>
-            <div style="height:108px;border:1px dashed var(--line);border-radius:9px;margin-top:12px;
-                        display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px">
-              应用窗口内容（示例占位）
-            </div>
-            <div class="fl"><span class="live"></span>抓取中</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="scene">
-        <p class="cap"><b>场景三 · 已停止</b><span>明确告知已终止与已保存内容</span></p>
-        <div class="device">
-          <div class="device-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <div class="device-body">
-            <div class="tip" style="border-color:#CBEDE7;background:var(--brand-l)">
-              <div class="h"><span class="ic" style="background:var(--ok)">✓</span>屏幕抓取已停止</div>
-              <div style="font-size:12.4px;color:var(--gray)">
-                已停止抓取。本次共获取 3 张画面，保存至工单 #T-2291，将于 2026-10-18 自动删除。<br>
-                如需一并删除已抓取内容，可在"隐私中心"发起删除请求。
-              </div>
-              <div class="acts">
-                <button class="btn" data-demo="privacy">前往隐私中心</button>
-                <button class="btn primary" data-demo="ok">知道了</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="scene">
-        <p class="cap"><b>场景四 · 隐私中心</b><span>随时撤回授权、查看与删除抓取记录</span></p>
-        <div class="device">
-          <div class="device-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
-          <div class="device-body privacy-center">
-            <div style="font-size:13px;font-weight:700;margin-bottom:6px">屏幕抓取记录</div>
-            <div class="item"><span>2026-10-11 · 工单 #T-2291 · 3 张</span><span><span class="tag ok">已保存</span> <button class="btn ghost sm" data-demo="del">删除</button></span></div>
-            <div class="item"><span>2026-09-28 · 工单 #T-2184 · 2 张</span><span><span class="tag ok">已保存</span> <button class="btn ghost sm" data-demo="del">删除</button></span></div>
-            <div class="item"><span>期间授权（有效期至 10-18）</span><span><button class="btn ghost sm" data-demo="revoke">撤回授权</button></span></div>
-            <div class="item"><span>自动删除时间</span><span style="color:var(--gray)">2026-10-18 00:00</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:22px">
-      <div class="card-h"><h2>提示文案（可直接用于产品）</h2><span class="hint">按场景拆分，避免一句长文概括</span></div>
-      <div class="card-b">
-        <div class="copy">
-          <div><span class="k">开关说明（后台）：</span>开启后，可在用户确认的前提下抓取其 MIIA-AI 应用窗口画面，用于技术支持与问题排查。抓取过程对用户始终可见，用户可随时终止；抓取内容按设定期限自动删除，开关的开启、关闭与每次抓取均记入审计日志。</div>
-          <div style="margin-top:10px"><span class="k">授权弹窗（用户）：</span>为排查您反馈的问题（工单 #T-2291），技术支持人员请求获取您的屏幕画面。抓取范围为 MIIA-AI 应用窗口，不含其他程序；抓取期间将持续显示提示，您可随时停止；内容仅本次工单人员可见，7 天后自动删除，仅用于问题排查。</div>
-          <div style="margin-top:10px"><span class="k">进行中提示（用户）：</span>正在屏幕抓取 · 剩余 02:47 · 仅抓取 MIIA-AI 窗口 · 技术人员：张工 · 工单 #T-2291　［立即停止］</div>
-          <div style="margin-top:10px"><span class="k">已停止（用户）：</span>屏幕抓取已停止。本次共获取 3 张画面，保存至工单 #T-2291，将于 2026-10-18 自动删除；如需一并删除，可在隐私中心发起删除请求。</div>
-          <div style="margin-top:10px"><span class="k">拒绝后（用户）：</span>已拒绝本次屏幕抓取。您仍可通过文字描述或上传截图的方式协助排查，技术支持不会因此拒绝提供服务。</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ================= ③ 合规要求 ================= -->
-  <section data-panel="compliance" hidden>
-    <div class="rules">
-      <div class="rule"><h4><span class="n">1</span>单独同意，不得捆绑</h4><p>屏幕内容属敏感个人信息，须在抓取前单独取得同意；不得并入《用户协议》、不得默认勾选、不得以"不同意即不能使用"变相强制。</p></div>
-      <div class="rule"><h4><span class="n">2</span>全程可见，禁止静默</h4><p>抓取开始、进行中、结束三个时点均须对用户可见；提示中应包含抓取范围、执行人、剩余时间，并提供"立即停止"入口。系统层面不提供关闭提示的配置项。</p></div>
-      <div class="rule"><h4><span class="n">3</span>最小必要</h4><p>默认仅抓取应用窗口，不抓桌面与其他程序；确有整屏需要时须单独审批并记录理由。抓取频率按工单需要，不做常态化采集。</p></div>
-      <div class="rule"><h4><span class="n">4</span>目的限定与可撤回</h4><p>仅用于本次工单对应的技术支持与问题排查，不得用于绩效、行为分析等其他目的；用户可随时撤回授权，撤回后立即终止且不影响其获得服务。</p></div>
-      <div class="rule"><h4><span class="n">5</span>留存最短、到期即删</h4><p>默认留存 7 天（最长不超过 30 天），到期自动删除并留存删除记录；用户可申请提前删除。</p></div>
-      <div class="rule"><h4><span class="n">6</span>权限与审计</h4><p>仅授权角色可发起抓取；查看与下载须二次授权；开关变更、抓取发起、查看、下载、删除全量留痕，日志留存不少于 6 个月。</p></div>
-      <div class="rule red"><h4><span class="n">✕</span>禁止做法（红线）</h4><p>后台静默抓取、锁屏/切后台继续抓取、隐藏提示图标、抓取时屏蔽"停止"按钮、超期留存、跨工单复用画面、将画面用于模型训练、转发至外部群组或第三方。</p></div>
-      <div class="rule red"><h4><span class="n">✕</span>不得抓取的内容</h4><p>密码与验证码输入、支付信息、身份证件与人脸、其他患者影像与报告、个人聊天与邮件、桌面通知内容。上述区域由系统强制遮挡，且不得提供关闭遮挡的能力。</p></div>
-    </div>
-
-    <div class="card" style="margin-top:22px">
-      <div class="card-h"><h2>抓取范围对照</h2><span class="hint">建议写进产品说明与客服话术</span></div>
-      <div class="card-b">
-        <div class="compare">
-          <div class="box yes">
-            <h5>✓ 允许抓取</h5>
-            <ul>
-              <li>MIIA-AI 应用窗口内界面与操作过程</li>
-              <li>用户主动框选的区域（不含被遮挡内容）</li>
-              <li>与工单描述直接相关的报错信息、界面状态</li>
-            </ul>
-          </div>
-          <div class="box no">
-            <h5>✕ 禁止抓取 / 强制遮挡</h5>
-            <ul>
-              <li>其他应用程序、桌面图标与通知</li>
-              <li>密码框、验证码、身份证件与人脸画面</li>
-              <li>其他患者的影像、报告与检查信息</li>
-              <li>个人聊天、邮件、浏览器其他标签页</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:20px">
-      <div class="card-h"><h2>审计留痕字段</h2><span class="hint">建议作为验收项</span></div>
-      <div class="card-b" style="padding-top:0">
-        <table>
-          <thead><tr><th style="width:170px">字段</th><th>说明</th></tr></thead>
-          <tbody>
-            <tr><td>操作类型</td><td>开关开启 / 关闭、抓取发起、用户允许 / 拒绝、查看、下载、删除、撤回授权</td></tr>
-            <tr><td>主体</td><td>操作人账号、角色、所属机构 / 租户；用户侧记录授权人</td></tr>
-            <tr><td>对象</td><td>工单号、抓取记录 ID、画面数量、抓取范围（窗口 / 区域 / 整屏）</td></tr>
-            <tr><td>时间与来源</td><td>操作时间（精确到秒）、来源 IP、客户端版本</td></tr>
-            <tr><td>结果</td><td>成功 / 拒绝 / 失败（失败须记录原因码）</td></tr>
-            <tr><td>留存</td><td>删除时间与删除方式（到期自动 / 用户申请 / 管理员操作）</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </section>
 </div>
 
-<!-- ================= 弹窗：开启确认 ================= -->
-<div class="mask" id="mOn">
+<!-- 开启前的隐私提示弹窗 -->
+<div class="mask" id="m">
   <div class="modal">
-    <div class="modal-h">
-      <h3>确认开启屏幕抓取</h3>
-      <p>该能力涉及敏感个人信息处理，请确认以下事项后再开启。</p>
+    <div class="mh">
+      <h2><span class="ic">!</span>开启屏幕抓取前，请确认隐私提示</h2>
+      <p>开启后，系统将按设定间隔抓取屏幕画面。请您阅读以下内容后再决定是否同意。</p>
     </div>
-    <div class="modal-b">
-      <div class="kv">
-        <div class="k">抓取范围</div><div class="v" id="mOnScope">仅 MIIA-AI 应用窗口</div>
-        <div class="k">发起方式</div><div class="v" id="mOnTrigger">用户主动发起</div>
-        <div class="k">授权方式</div><div class="v" id="mOnConsent">每次抓取前单独确认</div>
-        <div class="k">留存期限</div><div class="v" id="mOnKeep">7 天，到期自动删除</div>
-        <div class="k">脱敏</div><div class="v">强制开启（密码框、证件、其他患者信息自动遮挡）</div>
-      </div>
-      <label class="checkline">
-        <input type="checkbox" id="ckOn">
-        <span>我确认：本次开启有明确的工单或排查事由；已通过界面提示向用户告知抓取范围、目的、查看人与留存期限；抓取过程中不会关闭用户端可见提示，不进行静默抓取。</span>
-      </label>
+    <div class="mb">
+      <ul class="risks">
+        <li><span class="k">抓取内容</span><span>当前屏幕画面，可能包含<b>患者信息、影像与报告内容</b>等敏感信息。</span></li>
+        <li><span class="k">抓取频率</span><span>开启后每隔 <b id="mSec">10</b> 秒自动抓取一次，直至关闭开关。</span></li>
+        <li><span class="k">使用目的</span><span>仅用于本次技术支持与问题排查，<b>不用于其他用途</b>。</span></li>
+        <li><span class="k">隐私风险</span><span>画面可能被支持人员查看，存在<b>个人信息泄露风险</b>；请确认当前屏幕不含无关敏感内容。</span></li>
+        <li><span class="k">您的选择</span><span>可随时<b>关闭开关</b>，关闭后立即停止抓取；不同意则不会开启。</span></li>
+      </ul>
+      <div class="note">同意记录将与开关状态一并留存，便于后续核查。</div>
     </div>
-    <div class="modal-f">
-      <button class="btn" data-close="mOn">取消</button>
-      <button class="btn primary" id="btnOnConfirm" disabled>确认开启</button>
-    </div>
-  </div>
-</div>
-
-<!-- ================= 弹窗：用户授权预览 ================= -->
-<div class="mask" id="mAsk">
-  <div class="modal wide">
-    <div class="modal-h">
-      <h3>用户端授权提示（预览）</h3>
-      <p>实际展示于用户客户端，非后台界面。</p>
-    </div>
-    <div class="modal-b">
-      <div class="tip">
-        <div class="h"><span class="ic">!</span>屏幕抓取授权</div>
-        <div style="font-size:12.5px;color:var(--gray)">技术支持人员请求获取您的屏幕画面，用于排查您提交的问题（工单 #T-2291）。</div>
-        <ul>
-          <li><b>抓取内容：</b>仅 MIIA-AI 应用窗口，不含其他程序与桌面</li>
-          <li><b>可见可控：</b>抓取期间持续显示提示，可随时点击"停止"</li>
-          <li><b>谁可以看：</b>仅本次工单指派的技术支持人员</li>
-          <li><b>留存期限：</b>7 天后自动删除</li>
-          <li><b>拒绝的后果：</b>不影响您获得服务，可改用文字描述或自行上传截图</li>
-        </ul>
-        <div class="acts">
-          <button class="btn" data-close="mAsk">拒绝</button>
-          <button class="btn primary" data-close="mAsk" data-toast="已模拟：用户同意本次抓取（仅本次）">仅本次允许</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ================= 弹窗：抓取进行中 ================= -->
-<div class="mask" id="mLive">
-  <div class="modal">
-    <div class="modal-h">
-      <h3>抓取进行中（用户端提示预览）</h3>
-      <p>用户端窗口顶部常驻此提示，可随时终止。</p>
-    </div>
-    <div class="modal-b">
-      <div class="banner">
-        <span class="live"></span>
-        <div>
-          <div class="t">正在屏幕抓取 · 剩余 <span id="cd">02:47</span></div>
-          <div class="s">仅抓取 MIIA-AI 窗口 · 技术人员：张工 · 工单 #T-2291</div>
-        </div>
-      </div>
-      <div style="margin-top:12px;font-size:12.3px;color:var(--gray)">
-        提示中必须同时出现四项：抓取状态、抓取范围、执行人、剩余时间；"立即停止"按钮不可隐藏或置灰。
-      </div>
-    </div>
-    <div class="modal-f">
-      <button class="btn danger" data-close="mLive" data-toast="已模拟：用户主动停止抓取">立即停止</button>
-      <button class="btn" data-close="mLive">关闭预览</button>
+    <div class="mf">
+      <button class="btn" id="btnNo">不同意</button>
+      <button class="btn primary" id="btnYes">我已了解，同意开启</button>
     </div>
   </div>
 </div>
@@ -607,163 +174,69 @@
 
 <script>
 (function(){
-  var S = { on:false, scope:'window', trigger:'user', consent:'each', keep:'7', scopeOrg:'one' };
-  var LABEL = {
-    scope:{window:'仅 MIIA-AI 应用窗口', region:'用户框选区域', full:'整屏'},
-    trigger:{user:'用户主动发起', confirm:'管理员发起，用户确认后进行', silent:'后台静默抓取'},
-    consent:{each:'每次抓取前单独确认', period:'期间授权（最长 7 天）'},
-    scopeOrg:{one:'本机构', tenant:'指定租户'}
-  };
-  function $(s, r){ return (r||document).querySelector(s); }
-  function $$(s, r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); }
-  function toast(t){ var el=$('#toast'); el.textContent=t; el.classList.add('show');
-    clearTimeout(toast._t); toast._t=setTimeout(function(){ el.classList.remove('show'); }, 2200); }
+  var S = { on:false, sec:10 };
+  function $(s){ return document.querySelector(s); }
+  function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show');
+    clearTimeout(toast._t); toast._t=setTimeout(function(){ e.classList.remove('show'); }, 2000); }
 
-  /* ---------- 标签页 ---------- */
-  $$('.tab').forEach(function(b){
-    b.addEventListener('click', function(){
-      $$('.tab').forEach(function(x){ x.setAttribute('aria-selected', x===b ? 'true':'false'); });
-      $$('[data-panel]').forEach(function(p){ p.hidden = (p.getAttribute('data-panel') !== b.dataset.tab); });
-      window.scrollTo({top:0, behavior:'smooth'});
+  function paint(){
+    var sw=$('#sw'), st=$('#st'), box=$('#secBox');
+    sw.setAttribute('aria-checked', S.on ? 'true' : 'false');
+    st.textContent = S.on ? '已开启' : '已关闭';
+    st.className = 'state' + (S.on ? ' on' : '');
+    box.hidden = !S.on;
+    $('#sdot').className = 'dot' + (S.on ? ' live' : '');
+    $('#stext').innerHTML = S.on
+      ? '正在抓取：每 <b>' + S.sec + '</b> 秒一次 · 关闭开关即停止'
+      : '当前已关闭，未进行任何抓取。';
+    $('#mSec').textContent = S.sec;
+    Array.prototype.forEach.call(document.querySelectorAll('.sec'), function(b){
+      b.setAttribute('aria-pressed', Number(b.dataset.sec) === Number(S.sec) ? 'true' : 'false');
     });
-  });
-
-  /* ---------- 选项组（事件委托） ---------- */
-  document.addEventListener('click', function(ev){
-    var btn = ev.target.closest('.opt'); if(!btn) return;
-    var group = btn.closest('[data-group]'); if(!group) return;
-    var key = group.getAttribute('data-group');
-    if(btn.hasAttribute('data-forbidden')){
-      toast('该选项不可启用：抓取必须对用户可见，禁止静默抓取');
-      return;
-    }
-    if(btn.hasAttribute('data-locked')){
-      toast('自动脱敏为强制项，不可关闭');
-      return;
-    }
-    $$('.opt', group).forEach(function(x){ x.setAttribute('aria-pressed', x===btn ? 'true':'false'); });
-    S[key] = btn.getAttribute('data-v');
-    render(); syncModal();
-  });
-
-  /* ---------- 状态渲染 ---------- */
-  function render(){
-    $('#swState').textContent = S.on ? '已开启' : '已关闭';
-    $('#swState').className = 'state ' + (S.on ? 'on':'off');
-    $('#sMaster').textContent = S.on ? '已开启' : '已关闭';
-    $('#sScope').textContent = LABEL.scope[S.scope] + ' · ' + LABEL.scopeOrg[S.scopeOrg];
-    $('#sConsent').textContent = LABEL.consent[S.consent];
-    $('#sKeep').textContent = S.keep + ' 天（到期自动删除）';
-    $('#sLive').textContent = S.on ? '1 个' : '0 个';
-    $('#swMaster').setAttribute('aria-checked', S.on ? 'true':'false');
-  }
-  function syncModal(){
-    $('#mOnScope').textContent = LABEL.scope[S.scope];
-    $('#mOnTrigger').textContent = LABEL.trigger[S.trigger];
-    $('#mOnConsent').textContent = LABEL.consent[S.consent];
-    $('#mOnKeep').textContent = S.keep + ' 天，到期自动删除';
   }
 
-  /* ---------- 总开关 ---------- */
-  var pendingOn = false;
-  $('#swMaster').addEventListener('click', function(){
+  // 开关：开启前必须弹窗同意
+  $('#sw').addEventListener('click', function(){
     if(!S.on){
-      syncModal();
-      $('#ckOn').checked = false;
-      $('#btnOnConfirm').disabled = true;
-      openModal('mOn');
-      pendingOn = true;
+      $('#mSec').textContent = S.sec;
+      $('#m').classList.add('show');
     }else{
-      S.on = false; render();
-      addLog('VV（运维）', '关闭开关', '关闭屏幕抓取总开关', 'ok');
-      toast('已关闭屏幕抓取。开关变更已记入审计日志');
+      S.on = false; paint();
+      toast('已关闭屏幕抓取，立即停止');
     }
   });
-  $('#ckOn').addEventListener('change', function(){
-    $('#btnOnConfirm').disabled = !this.checked;
+
+  $('#btnYes').addEventListener('click', function(){
+    $('#m').classList.remove('show');
+    S.on = true; paint();
+    toast('已开启：每 ' + S.sec + ' 秒抓取一次');
   });
-  $('#btnOnConfirm').addEventListener('click', function(e){
-    if(!$('#ckOn').checked){ e.preventDefault(); return; }
-    S.on = true; render(); closeModal('mOn');
-    addLog('VV（运维）', '开启开关', '开启屏幕抓取（' + LABEL.scope[S.scope] + '）', 'ok');
-    toast('已开启屏幕抓取。用户端将在抓取时持续显示提示');
-    pendingOn = false;
+  $('#btnNo').addEventListener('click', function(){
+    $('#m').classList.remove('show');
+    S.on = false; paint();
+    toast('未同意，未开启屏幕抓取');
   });
 
-  /* ---------- 弹窗 ---------- */
-  function openModal(id){ $('#'+id).classList.add('show'); }
-  function closeModal(id){ $('#'+id).classList.remove('show'); }
+  // 间隔选择（事件委托，简单可靠）
   document.addEventListener('click', function(ev){
-    var c = ev.target.closest('[data-close]');
-    if(c){ closeModal(c.getAttribute('data-close')); var t=c.getAttribute('data-toast'); if(t) toast(t); }
-    if(ev.target.classList && ev.target.classList.contains('mask')) ev.target.classList.remove('show');
+    var b = ev.target.closest ? ev.target.closest('.sec') : null;
+    if(!b) return;
+    S.sec = Number(b.dataset.sec);
+    paint();
+    if(S.on) toast('抓取间隔已更新为每 ' + S.sec + ' 秒');
+  });
+
+  // 点击遮罩/ESC 视为不同意
+  $('#m').addEventListener('click', function(ev){
+    if(ev.target === this){ this.classList.remove('show'); S.on = false; paint(); toast('未同意，未开启屏幕抓取'); }
   });
   document.addEventListener('keydown', function(e){
-    if(e.key === 'Escape') $$('.mask.show').forEach(function(m){ m.classList.remove('show'); });
-  });
-  window.openModal = openModal; window.closeModal = closeModal;
-
-  /* ---------- 审计日志 ---------- */
-  function nowStr(){
-    var d = new Date(), p = function(n){ return (n<10?'0':'')+n; };
-    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
-  }
-  function addLog(who, act, obj, r){
-    var tb = $('#logBody');
-    var tr = document.createElement('tr');
-    tr.innerHTML = '<td class="mono">'+nowStr()+'</td><td>'+who+'</td><td>'+act+'</td><td>'+obj+'</td>'
-      + '<td><span class="tag '+(r==='ok'?'ok':'warn')+'">'+(r==='ok'?'成功':'已拒绝')+'</span></td>'
-      + '<td class="mono">10.20.3.18</td>';
-    tr.style.background = '#F4FBF9';
-    tb.insertBefore(tr, tb.firstChild);
-    setTimeout(function(){ tr.style.background=''; }, 2600);
-  }
-
-  /* ---------- 预览按钮 ---------- */
-  $('#btnPreview').addEventListener('click', function(){
-    $$('.tab').forEach(function(x){ x.setAttribute('aria-selected', x.dataset.tab==='user' ? 'true':'false'); });
-    $$('[data-panel]').forEach(function(p){ p.hidden = (p.getAttribute('data-panel') !== 'user'); });
-    window.scrollTo({top:0, behavior:'smooth'});
-  });
-  $('#btnSave').addEventListener('click', function(){
-    toast('设置已保存（原型演示，未下发至服务端）');
-  });
-  $('#btnExportLog').addEventListener('click', function(){
-    toast('导出任务已创建（原型演示）');
-  });
-  $('#btnSimLive').addEventListener('click', function(){ openModal('mLive'); });
-  $('#btnSimAsk').addEventListener('click', function(){ openModal('mAsk'); });
-  $('#btnSimReject').addEventListener('click', function(){
-    addLog('何×（用户）', '拒绝授权', '拒绝管理员发起的抓取（工单 #T-2291）', 'rej');
-    toast('已模拟：用户拒绝授权，抓取未执行');
+    if(e.key === 'Escape' && $('#m').classList.contains('show')){
+      $('#m').classList.remove('show'); S.on = false; paint(); toast('未同意，未开启屏幕抓取');
+    }
   });
 
-  /* ---------- 用户端场景按钮 ---------- */
-  document.addEventListener('click', function(ev){
-    var b = ev.target.closest('[data-demo]'); if(!b) return;
-    var k = b.getAttribute('data-demo');
-    var msg = {
-      allow:'已模拟：用户同意本次抓取',
-      reject:'已模拟：用户拒绝授权，抓取未执行',
-      stop:'已模拟：用户主动停止抓取',
-      ok:'已模拟：用户已知悉',
-      privacy:'已模拟：跳转隐私中心',
-      del:'已模拟：发起删除请求',
-      revoke:'已模拟：撤回期间授权'
-    }[k];
-    if(msg) toast(msg);
-  });
-
-  /* ---------- 进行中倒计时 ---------- */
-  var left = 167;
-  setInterval(function(){
-    var m = Math.floor(left/60), s = left%60;
-    var el = $('#cd');
-    if(el) el.textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
-    left = left > 0 ? left-1 : 167;
-  }, 1000);
-
-  render(); syncModal();
+  paint();
 })();
 </script>
 </body>
