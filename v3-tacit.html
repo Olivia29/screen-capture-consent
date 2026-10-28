@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIR 报告模型优化（V3.1）</title>
+<style>
+  :root{
+    --bg:#F5FBFB; --card:#fff; --line:#E0EAF6; --line2:#EEF3F8;
+    --ink:#1F2A37; --gray:#5A6B7B; --muted:#8FA0B0;
+    --brand:#00A398; --brand-d:#00847B; --brand-l:#E6F7F5;
+    --blue:#0070C0; --warn:#C2410C; --warn-l:#FFF4ED; --danger:#B42318;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.65 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+  .top{background:#fff;border-bottom:1px solid var(--line)}
+  .top .in{max-width:880px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;gap:12px}
+  .logo{width:28px;height:28px;border-radius:8px;background:var(--brand);color:#fff;
+        display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  .bn{font-weight:700;font-size:14.5px}
+  .crumb{color:var(--muted);font-size:12.5px}
+  .wrap{max-width:880px;margin:0 auto;padding:26px 24px 60px}
+  h1{font-size:20px;margin:0 0 6px}
+  .lead{color:var(--gray);font-size:13px;margin:0 0 18px;line-height:1.75}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .card .hd{padding:15px 20px;border-bottom:1px solid var(--line2);font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.4px}
+  .card .bd{padding:4px 20px 18px}
+
+  .row{display:flex;align-items:center;gap:16px;padding:17px 0;border-bottom:1px dashed var(--line2)}
+  .row:last-child{border-bottom:0}
+  .row .txt{flex:1;min-width:0}
+  .row .t{font-size:15px;font-weight:700}
+  .row .s{font-size:12.6px;color:var(--gray);margin-top:3px;line-height:1.65}
+
+  .sw{position:relative;width:54px;height:30px;flex:none;border:0;border-radius:20px;background:#D6DEE8;
+      cursor:pointer;transition:.2s;padding:0}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+             background:#fff;box-shadow:0 1px 3px rgba(16,32,56,.25);transition:.2s}
+  .sw[aria-checked="true"]{background:var(--brand)}
+  .sw[aria-checked="true"]::after{transform:translateX(24px)}
+  .sw:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .state{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid var(--line);
+         color:var(--gray);background:#F7FAFC;white-space:nowrap}
+  .state.on{color:#0E7C66;border-color:#BFE7DF;background:var(--brand-l)}
+
+  .secs{display:flex;gap:9px;flex-wrap:wrap;margin-top:2px}
+  .sec{border:1px solid var(--line);background:#fff;color:var(--gray);border-radius:10px;
+       padding:9px 15px;font:inherit;font-size:13px;cursor:pointer;transition:.15s;min-width:74px}
+  .sec:hover{border-color:#C9D8EA}
+  .sec[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-l);color:var(--brand-d);font-weight:700}
+  .hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.65}
+
+  .summary{margin-top:18px;background:#fff;border:1px solid var(--line);border-radius:12px;
+           padding:13px 18px;font-size:13px;color:var(--gray);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .summary b{color:var(--ink)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#D6DEE8;flex:none}
+  .dot.live{background:var(--brand);animation:p 1.5s infinite}
+  @keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.35)}}
+
+  .pre{margin-top:14px;background:var(--warn-l);border:1px solid #FBD9C4;border-radius:12px;
+       padding:13px 16px;font-size:12.4px;color:#8A3B12;line-height:1.75}
+  .pre b{color:#7A2E0B}
+  .pre span{display:block;margin-top:4px}
+
+  /* 弹窗 */
+  .mask{position:fixed;inset:0;background:rgba(16,32,56,.45);display:none;align-items:center;justify-content:center;
+        padding:22px;z-index:60;backdrop-filter:blur(2px)}
+  .mask.show{display:flex}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:88vh;overflow:auto;
+         box-shadow:0 24px 60px rgba(16,32,56,.22)}
+  .mh{padding:22px 24px 0}
+  .mh h2{margin:0;font-size:17px;display:flex;gap:9px;align-items:flex-start;line-height:1.5}
+  .mh .ic{width:22px;height:22px;border-radius:7px;background:var(--warn-l);color:var(--warn);flex:none;
+          display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-top:1px}
+  .mh p{margin:8px 0 0;font-size:12.6px;color:var(--gray);line-height:1.7}
+  .mb{padding:14px 24px 4px}
+  .risks{margin:0;padding:0;list-style:none}
+  .risks li{display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line2);font-size:12.7px;color:#33424F;line-height:1.7}
+  .risks li:last-child{border-bottom:0}
+  .risks .k{flex:none;width:70px;color:var(--muted)}
+  .risks b{color:var(--ink)}
+  .ck{display:flex;gap:10px;align-items:flex-start;background:#F8FBFC;border:1px solid var(--line);
+      border-radius:10px;padding:12px;font-size:12.6px;color:#33424F;margin-top:12px;cursor:pointer;line-height:1.7}
+  .ck input{margin-top:3px;width:15px;height:15px;accent-color:var(--brand);flex:none}
+  .mf{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line2);margin-top:10px}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 16px;border-radius:9px;
+       font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+  .btn:hover{background:#FBFDFE}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+  .btn.primary:hover{background:var(--brand-d)}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .note{font-size:11.5px;color:var(--muted);margin-top:10px;line-height:1.6}
+
+  #toast{position:fixed;left:50%;bottom:32px;transform:translate(-50%,16px);opacity:0;transition:.25s;
+         background:#15303F;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;z-index:90;pointer-events:none}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  @media print{.top,.secs,.btn{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="in">
+    <div class="logo">影</div>
+    <div class="bn">MIIA-AI 管理后台</div>
+    <div class="crumb">设置 / 报告模型优化</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>AIR 报告模型优化</h1>
+  <p class="lead">参与后可设定记录间隔。系统按间隔记录报告区域内容，用于解析医师的报告表述并持续优化 AIR 报告模型。参与前需医师确认用途与隐私说明。</p>
+
+  <div class="card">
+    <div class="hd">参与设置</div>
+    <div class="bd">
+      <div class="row">
+        <div class="txt">
+          <div class="t">参与报告模型优化</div>
+          <div class="s">按设定间隔记录医师提交的报告文本，用于优化模型对报告结构与表述的解析能力。</div>
+        </div>
+        <button class="sw" id="sw" role="switch" aria-checked="false" aria-label="参与报告模型优化开关"></button>
+        <span class="state" id="st">已关闭</span>
+      </div>
+
+      <div class="row" id="secBox" hidden>
+        <div class="txt" style="width:100%">
+          <div class="t">记录间隔</div>
+          <div class="s">每隔多少秒记录一次报告区域内容。</div>
+          <div class="secs" style="margin-top:12px">
+            <button class="sec" data-sec="5">5 秒</button>
+            <button class="sec" data-sec="10" aria-pressed="true">10 秒</button>
+            <button class="sec" data-sec="30">30 秒</button>
+            <button class="sec" data-sec="60">60 秒</button>
+          </div>
+          <div class="hint">建议在报告编辑完成、提交前参与，间隔不低于 10 秒；请勿在含无关患者信息的界面下参与。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <span class="dot" id="sdot"></span>
+    <span id="stext">当前未参与，系统不会记录任何内容。</span>
+  </div>
+
+  <div class="pre">
+    <b>上线前须具备的三个前提</b>
+    <span>① 已取得医院层面对报告数据使用的书面授权（数据用途、范围、期限明确）；</span>
+    <span>② 记录内容入库前完成患者身份信息脱敏，模型训练仅使用脱敏文本；</span>
+    <span>③ 医师拒绝或不参与不影响其正常使用系统，不设任何使用门槛。</span>
+  </div>
+</div>
+
+<!-- 开启前的用途与隐私说明 -->
+<div class="mask" id="m">
+  <div class="modal">
+    <div class="mh">
+      <h2><span class="ic">!</span>参与前，请阅读报告模型优化说明</h2>
+      <p>参与后，系统将按设定间隔记录你提交的报告文本，用于解析报告结构与表述并优化 AIR 报告模型。请阅读以下内容后决定是否参与。</p>
+    </div>
+    <div class="mb">
+      <ul class="risks">
+        <li><span class="k">记录内容</span><span>你最终提交的<b>报告文本</b>（影像所见、诊断意见等）；系统通过采集屏幕画面获取报告区域内容，画面中可能包含其他信息。</span></li>
+        <li><span class="k">记录频率</span><span>每隔 <b id="mSec">10</b> 秒记录一次，直至关闭开关。</span></li>
+        <li><span class="k">使用目的</span><span>解析报告文本的结构与表述，<b>用于 AIR 模型的优化与迭代</b>；不用于绩效考核、不对外提供、不用于其他用途。</span></li>
+        <li><span class="k">数据处理</span><span>入库前对<b>患者身份信息脱敏</b>，模型训练仅使用脱敏后的文本；原始画面按约定期限留存。</span></li>
+        <li><span class="k">风险提示</span><span>报告内容包含患者诊疗信息，属敏感个人信息，存在<b>泄露与不当使用风险</b>；请勿在含无关敏感内容的界面下参与。</span></li>
+        <li><span class="k">你的选择</span><span>可随时<b>关闭开关</b>，关闭后立即停止记录；<b>拒绝不会影响你正常使用系统</b>。</span></li>
+      </ul>
+      <label class="ck">
+        <input type="checkbox" id="ck">
+        <span>我已知晓：我提交的报告文本将被记录并用于 AIR 报告模型优化；我理解上述用途与风险，且此次同意是自愿的。</span>
+      </label>
+      <div class="note">本次同意的内容、时间与开关状态将一并留存，便于后续核查；退出后即停止记录，并可提出撤回同意。</div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="btnNo">不同意</button>
+      <button class="btn primary" id="btnYes" disabled>同意并开启</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  var S = { on:false, sec:10 };
+  function $(s){ return document.querySelector(s); }
+  function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show');
+    clearTimeout(toast._t); toast._t=setTimeout(function(){ e.classList.remove('show'); }, 2100); }
+
+  function paint(){
+    $('#sw').setAttribute('aria-checked', S.on ? 'true' : 'false');
+    var st = $('#st'); st.textContent = S.on ? '已开启' : '已关闭'; st.className = 'state' + (S.on ? ' on' : '');
+    $('#secBox').hidden = !S.on;
+    $('#sdot').className = 'dot' + (S.on ? ' live' : '');
+    $('#stext').innerHTML = S.on
+      ? '正在参与：每 <b>' + S.sec + '</b> 秒记录一次 · 关闭即停止'
+      : '当前未参与，系统不会记录任何内容。';
+    $('#mSec').textContent = S.sec;
+    Array.prototype.forEach.call(document.querySelectorAll('.sec'), function(b){
+      b.setAttribute('aria-pressed', Number(b.dataset.sec) === Number(S.sec) ? 'true' : 'false');
+    });
+  }
+
+  function openModal(){
+    var ck = $('#ck'); ck.checked = false; $('#btnYes').disabled = true;
+    $('#mSec').textContent = S.sec;
+    $('#m').classList.add('show');
+  }
+  function reject(){
+    $('#m').classList.remove('show');
+    S.on = false; paint();
+    toast('未同意，未参与');
+  }
+
+  $('#sw').addEventListener('click', function(){
+    if(!S.on){ openModal(); }
+    else { S.on = false; paint(); toast('已退出，立即停止记录'); }
+  });
+  $('#ck').addEventListener('change', function(){ $('#btnYes').disabled = !this.checked; });
+  $('#btnYes').addEventListener('click', function(){
+    if($('#btnYes').disabled) return;
+    $('#m').classList.remove('show');
+    S.on = true; paint();
+    toast('已参与：每 ' + S.sec + ' 秒记录一次');
+  });
+  $('#btnNo').addEventListener('click', reject);
+  $('#m').addEventListener('click', function(ev){ if(ev.target === this) reject(); });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && $('#m').classList.contains('show')) reject();
+  });
+  document.addEventListener('click', function(ev){
+    var b = ev.target.closest ? ev.target.closest('.sec') : null;
+    if(!b) return;
+    S.sec = Number(b.dataset.sec); paint();
+    if(S.on) toast('记录间隔已更新为每 ' + S.sec + ' 秒');
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>
