@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>屏幕抓取开关（简化版 V2.0）</title>
+<style>
+  :root{
+    --bg:#F5FBFB; --card:#fff; --line:#E0EAF6; --line2:#EEF3F8;
+    --ink:#1F2A37; --gray:#5A6B7B; --muted:#8FA0B0;
+    --brand:#00A398; --brand-d:#00847B; --brand-l:#E6F7F5;
+    --blue:#0070C0; --warn:#C2410C; --warn-l:#FFF4ED; --danger:#B42318;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:14px/1.65 "Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+  .top{background:#fff;border-bottom:1px solid var(--line)}
+  .top .in{max-width:860px;margin:0 auto;padding:0 24px;height:56px;display:flex;align-items:center;gap:12px}
+  .logo{width:28px;height:28px;border-radius:8px;background:var(--brand);color:#fff;
+        display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px}
+  .bn{font-weight:700;font-size:14.5px}
+  .crumb{color:var(--muted);font-size:12.5px}
+  .wrap{max-width:860px;margin:0 auto;padding:26px 24px 60px}
+  h1{font-size:20px;margin:0 0 6px}
+  .lead{color:var(--gray);font-size:13px;margin:0 0 20px}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .card .hd{padding:16px 20px;border-bottom:1px solid var(--line2);font-size:13px;color:var(--muted);font-weight:700;letter-spacing:.4px}
+  .card .bd{padding:6px 20px 20px}
+
+  .row{display:flex;align-items:center;gap:16px;padding:18px 0;border-bottom:1px dashed var(--line2)}
+  .row:last-child{border-bottom:0}
+  .row .txt{flex:1;min-width:0}
+  .row .t{font-size:15px;font-weight:700}
+  .row .s{font-size:12.5px;color:var(--gray);margin-top:3px}
+
+  /* 开关 */
+  .sw{position:relative;width:54px;height:30px;flex:none;border:0;border-radius:20px;background:#D6DEE8;
+      cursor:pointer;transition:.2s;padding:0}
+  .sw::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;
+             background:#fff;box-shadow:0 1px 3px rgba(16,32,56,.25);transition:.2s}
+  .sw[aria-checked="true"]{background:var(--brand)}
+  .sw[aria-checked="true"]::after{transform:translateX(24px)}
+  .sw:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+  .state{font-size:11.5px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid var(--line);
+         color:var(--gray);background:#F7FAFC;white-space:nowrap}
+  .state.on{color:#0E7C66;border-color:#BFE7DF;background:var(--brand-l)}
+
+  /* 秒数选择 */
+  #secBox{transition:.18s}
+  #secBox.hide{display:none}
+  .secs{display:flex;gap:9px;flex-wrap:wrap;margin-top:2px}
+  .sec{border:1px solid var(--line);background:#fff;color:var(--gray);border-radius:10px;
+       padding:9px 15px;font:inherit;font-size:13px;cursor:pointer;transition:.15s;min-width:74px}
+  .sec:hover{border-color:#C9D8EA}
+  .sec[aria-pressed="true"]{border-color:var(--brand);background:var(--brand-l);color:var(--brand-d);font-weight:700}
+  .hint{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.6}
+
+  .summary{margin-top:20px;background:#fff;border:1px solid var(--line);border-radius:12px;
+           padding:14px 18px;font-size:13px;color:var(--gray);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .summary b{color:var(--ink)}
+  .dot{width:8px;height:8px;border-radius:50%;background:#D6DEE8;flex:none}
+  .dot.live{background:var(--brand);animation:p 1.5s infinite}
+  @keyframes p{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.35)}}
+
+  /* 弹窗 */
+  .mask{position:fixed;inset:0;background:rgba(16,32,56,.45);display:none;align-items:center;justify-content:center;
+        padding:22px;z-index:60;backdrop-filter:blur(2px)}
+  .mask.show{display:flex}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow:auto;
+         box-shadow:0 24px 60px rgba(16,32,56,.22)}
+  .mh{padding:22px 24px 0}
+  .mh h2{margin:0;font-size:17px;display:flex;gap:9px;align-items:center}
+  .mh .ic{width:22px;height:22px;border-radius:7px;background:var(--warn-l);color:var(--warn);
+          display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+  .mh p{margin:7px 0 0;font-size:12.6px;color:var(--gray)}
+  .mb{padding:16px 24px 4px}
+  .risks{margin:0;padding:0;list-style:none}
+  .risks li{display:flex;gap:10px;padding:10px 0;border-bottom:1px dashed var(--line2);font-size:12.8px;color:#33424F;line-height:1.7}
+  .risks li:last-child{border-bottom:0}
+  .risks .k{flex:none;width:66px;color:var(--muted)}
+  .risks b{color:var(--ink)}
+  .mf{padding:14px 24px 20px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--line2);margin-top:10px}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:9px 16px;border-radius:9px;
+       font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+  .btn:hover{background:#FBFDFE}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+  .btn.primary:hover{background:var(--brand-d)}
+  .note{font-size:11.6px;color:var(--muted);margin-top:10px;line-height:1.6}
+
+  #toast{position:fixed;left:50%;bottom:32px;transform:translate(-50%,16px);opacity:0;transition:.25s;
+         background:#15303F;color:#fff;padding:11px 18px;border-radius:10px;font-size:13px;z-index:90;pointer-events:none}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  @media print{.top,.secs,.btn{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="in">
+    <div class="logo">影</div>
+    <div class="bn">MIIA-AI 管理后台</div>
+    <div class="crumb">设置 / 屏幕抓取</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <h1>屏幕抓取</h1>
+  <p class="lead">开启后可设定抓取间隔。开启前需用户确认隐私提示；关闭后立即停止抓取。</p>
+
+  <div class="card">
+    <div class="hd">抓取设置</div>
+    <div class="bd">
+
+      <!-- 1. 开关 -->
+      <div class="row">
+        <div class="txt">
+          <div class="t">抓取屏幕</div>
+          <div class="s">开启后按设定间隔自动抓取屏幕画面，用于技术支持与问题排查。</div>
+        </div>
+        <button class="sw" id="sw" role="switch" aria-checked="false" aria-label="抓取屏幕开关"></button>
+        <span class="state" id="st">已关闭</span>
+      </div>
+
+      <!-- 2. 抓取间隔（开启后出现） -->
+      <div class="row" id="secBox" hidden>
+        <div class="txt" style="width:100%">
+          <div class="t">抓取间隔</div>
+          <div class="s">每隔多少秒抓取一次。</div>
+          <div class="secs" style="margin-top:12px">
+            <button class="sec" data-sec="5">5 秒</button>
+            <button class="sec" data-sec="10" aria-pressed="true">10 秒</button>
+            <button class="sec" data-sec="30">30 秒</button>
+            <button class="sec" data-sec="60">60 秒</button>
+          </div>
+          <div class="hint">间隔越短，画面中包含敏感信息的暴露面越大；建议不低于 10 秒。</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="summary">
+    <span class="dot" id="sdot"></span>
+    <span id="stext">当前已关闭，未进行任何抓取。</span>
+  </div>
+</div>
+
+<!-- 开启前的隐私提示弹窗 -->
+<div class="mask" id="m">
+  <div class="modal">
+    <div class="mh">
+      <h2><span class="ic">!</span>开启屏幕抓取前，请确认隐私提示</h2>
+      <p>开启后，系统将按设定间隔抓取屏幕画面。请您阅读以下内容后再决定是否同意。</p>
+    </div>
+    <div class="mb">
+      <ul class="risks">
+        <li><span class="k">抓取内容</span><span>当前屏幕画面，可能包含<b>患者信息、影像与报告内容</b>等敏感信息。</span></li>
+        <li><span class="k">抓取频率</span><span>开启后每隔 <b id="mSec">10</b> 秒自动抓取一次，直至关闭开关。</span></li>
+        <li><span class="k">使用目的</span><span>仅用于本次技术支持与问题排查，<b>不用于其他用途</b>。</span></li>
+        <li><span class="k">隐私风险</span><span>画面可能被支持人员查看，存在<b>个人信息泄露风险</b>；请确认当前屏幕不含无关敏感内容。</span></li>
+        <li><span class="k">您的选择</span><span>可随时<b>关闭开关</b>，关闭后立即停止抓取；不同意则不会开启。</span></li>
+      </ul>
+      <div class="note">同意记录将与开关状态一并留存，便于后续核查。</div>
+    </div>
+    <div class="mf">
+      <button class="btn" id="btnNo">不同意</button>
+      <button class="btn primary" id="btnYes">我已了解，同意开启</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  var S = { on:false, sec:10 };
+  function $(s){ return document.querySelector(s); }
+  function toast(t){ var e=$('#toast'); e.textContent=t; e.classList.add('show');
+    clearTimeout(toast._t); toast._t=setTimeout(function(){ e.classList.remove('show'); }, 2000); }
+
+  function paint(){
+    var sw=$('#sw'), st=$('#st'), box=$('#secBox');
+    sw.setAttribute('aria-checked', S.on ? 'true' : 'false');
+    st.textContent = S.on ? '已开启' : '已关闭';
+    st.className = 'state' + (S.on ? ' on' : '');
+    box.hidden = !S.on;
+    $('#sdot').className = 'dot' + (S.on ? ' live' : '');
+    $('#stext').innerHTML = S.on
+      ? '正在抓取：每 <b>' + S.sec + '</b> 秒一次 · 关闭开关即停止'
+      : '当前已关闭，未进行任何抓取。';
+    $('#mSec').textContent = S.sec;
+    Array.prototype.forEach.call(document.querySelectorAll('.sec'), function(b){
+      b.setAttribute('aria-pressed', Number(b.dataset.sec) === Number(S.sec) ? 'true' : 'false');
+    });
+  }
+
+  // 开关：开启前必须弹窗同意
+  $('#sw').addEventListener('click', function(){
+    if(!S.on){
+      $('#mSec').textContent = S.sec;
+      $('#m').classList.add('show');
+    }else{
+      S.on = false; paint();
+      toast('已关闭屏幕抓取，立即停止');
+    }
+  });
+
+  $('#btnYes').addEventListener('click', function(){
+    $('#m').classList.remove('show');
+    S.on = true; paint();
+    toast('已开启：每 ' + S.sec + ' 秒抓取一次');
+  });
+  $('#btnNo').addEventListener('click', function(){
+    $('#m').classList.remove('show');
+    S.on = false; paint();
+    toast('未同意，未开启屏幕抓取');
+  });
+
+  // 间隔选择（事件委托，简单可靠）
+  document.addEventListener('click', function(ev){
+    var b = ev.target.closest ? ev.target.closest('.sec') : null;
+    if(!b) return;
+    S.sec = Number(b.dataset.sec);
+    paint();
+    if(S.on) toast('抓取间隔已更新为每 ' + S.sec + ' 秒');
+  });
+
+  // 点击遮罩/ESC 视为不同意
+  $('#m').addEventListener('click', function(ev){
+    if(ev.target === this){ this.classList.remove('show'); S.on = false; paint(); toast('未同意，未开启屏幕抓取'); }
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape' && $('#m').classList.contains('show')){
+      $('#m').classList.remove('show'); S.on = false; paint(); toast('未同意，未开启屏幕抓取');
+    }
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>
